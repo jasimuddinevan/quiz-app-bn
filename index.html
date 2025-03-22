@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Quiz App</title>
+    <link href="https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700&family=Tiro+Bangla&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script defer src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js"></script>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body class="min-h-screen flex items-center justify-center p-4" style="background-color: rgba(249, 246, 236, 0.8);">
+    <div x-data="quizApp()" class="w-full max-w-2xl bg-white rounded-2xl shadow-xl overflow-hidden">
+        <!-- Setup Screen -->
+        <div x-show="!quizStarted" class="p-8">
+            <h1 class="text-3xl font-bold text-center mb-8">কুইজ সেটআপ</h1>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">বিভাগ</label>
+                    <select x-model="selectedCategory" class="w-full p-3 border rounded-lg">
+                        <option value="any">যেকোনো বিভাগ</option>
+                        <option value="9">সাধারণ জ্ঞান</option>
+                        <option value="10">বিনোদন: বই</option>
+                        <option value="11">বিনোদন: চলচ্চিত্র</option>
+                        <option value="12">বিনোদন: সঙ্গীত</option>
+                        <option value="13">বিনোদন: মিউজিক্যাল ও থিয়েটার</option>
+                        <option value="14">বিনোদন: টেলিভিশন</option>
+                        <option value="15">বিনোদন: ভিডিও গেমস</option>
+                        <option value="16">বিনোদন: বোর্ড গেমস</option>
+                        <option value="17">বিজ্ঞান ও প্রকৃতি</option>
+                        <option value="18">বিজ্ঞান: কম্পিউটার</option>
+                        <option value="19">বিজ্ঞান: গণিত</option>
+                        <option value="20">পৌরাণিক কাহিনী</option>
+                        <option value="21">খেলাধুলা</option>
+                        <option value="22">ভূগোল</option>
+                        <option value="23">ইতিহাস</option>
+                        <option value="24">রাজনীতি</option>
+                        <option value="25">শিল্পকলা</option>
+                        <option value="26">বিখ্যাত ব্যক্তিত্ব</option>
+                        <option value="27">প্রাণী</option>
+                        <option value="28">যানবাহন</option>
+                        <option value="29">বিনোদন: কমিকস</option>
+                        <option value="30">বিজ্ঞান: গ্যাজেট</option>
+                        <option value="31">বিনোদন: জাপানি অ্যানিমে ও ম্যাঙ্গা</option>
+                        <option value="32">বিনোদন: কার্টুন ও অ্যানিমেশন</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">কঠিনতার মাত্রা</label>
+                    <select x-model="selectedDifficulty" class="w-full p-3 border rounded-lg">
+                        <option value="any">যেকোনো কঠিনতার মাত্রা</option>
+                        <option value="easy">সহজ</option>
+                        <option value="medium">মাঝারি</option>
+                        <option value="hard">কঠিন</option>
+                    </select>
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-2">প্রশ্নের সংখ্যা</label>
+                    <input type="number" x-model="numberOfQuestions" min="1" max="50" class="w-full p-3 border rounded-lg">
+                </div>
+                <div x-show="!nameSkipped">
+                    <label class="block text-sm font-medium text-gray-700 mb-2">আপনার নাম কি? (ঐচ্ছিক)</label>
+                    <input type="text" x-model="userName" placeholder="আপনার নাম লিখুন" class="w-full p-3 border rounded-lg">
+                    <button @click="nameSkipped = true" class="text-sm text-gray-500 mt-2 hover:text-gray-700">এড়িয়ে যান</button>
+                </div>
+                <button @click="startQuiz()" class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition">কুইজ শুরু করুন</button>
+            </div>
+        </div>
+
+        <!-- Quiz Screen -->
+        <div x-show="quizStarted && !quizCompleted" class="p-8">
+            <div class="flex justify-between items-center mb-8">
+                <h2 class="text-2xl font-bold">প্রশ্ন <span x-text="currentQuestionIndex + 1"></span>/<span x-text="questions.length"></span></h2>
+                <div class="text-lg font-semibold text-blue-600">স্কোর: <span x-text="score"></span></div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="w-full bg-gray-200 rounded-full h-2.5 mb-8">
+                <div class="bg-blue-600 h-2.5 rounded-full transition-all duration-300" :style="`width: ${(currentQuestionIndex + 1) / questions.length * 100}%`"></div>
+            </div>
+
+
+            <div class="space-y-6">
+                <p x-text="currentQuestion.question" class="text-lg font-medium"></p>
+                <div class="grid gap-4">
+                    <template x-for="option in shuffledOptions" :key="option">
+                        <button 
+                            @click="selectAnswer(option)"
+                            :class="{
+                                'border-2 p-4 rounded-lg text-left transition': true,
+                                'hover:bg-gray-50': !selectedAnswer,
+                                'bg-green-100 border-green-500': selectedAnswer === option && option === currentQuestion.correct_answer,
+                                'bg-red-100 border-red-500': selectedAnswer === option && option !== currentQuestion.correct_answer,
+                                'opacity-50 cursor-not-allowed': selectedAnswer
+                            }"
+                            :disabled="selectedAnswer"
+                            x-text="option"
+                        ></button>
+                    </template>
+                </div>
+                <button 
+                    x-show="selectedAnswer"
+                    @click="nextQuestion()"
+                    class="w-full bg-blue-600 text-white py-3 rounded-lg font-semibold hover:bg-blue-700 transition mt-4"
+                    x-text="currentQuestionIndex === questions.length - 1 ? 'কুইজ শেষ করুন' : 'পরবর্তী প্রশ্ন'"
+                ></button>
+            </div>
+        </div>
+
+        <!-- Results Screen -->
+        <div x-show="quizCompleted" class="p-8 text-center">
+            <h2 class="text-3xl font-bold mb-4">কুইজ সম্পন্ন!</h2>
+            <div class="text-xl mb-6">আপনার স্কোর: <span x-text="score"></span>/<span x-text="questions.length"></span></div>
+            <div class="text-lg mb-8" x-text="getScoreMessage()"></div>
+            <button @click="resetQuiz()" class="bg-blue-600 text-white py-3 px-6 rounded-lg font-semibold hover:bg-blue-700 transition">আবার চেষ্টা করুন</button>
+        </div>
+    </div>
+
+    <!-- Developer Watermark -->
+    <div class="fixed bottom-0 w-full text-center py-2 text-gray-400 bg-white bg-opacity-10"> Built by
+        <a href="https://web.facebook.com/jasimuddinevan" target="_blank" class="hover:text-gray-600 transition-colors">
+             Jasim Uddin
+        </a>
+    </div>
+
+    <script src="quiz.js"></script>
+</body>
+</html>
